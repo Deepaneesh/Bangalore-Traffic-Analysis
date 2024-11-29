@@ -1,0 +1,268 @@
+---
+title: "Bangalore Traffic Analysis"
+author: "Deepaneesh R V"
+date: "2024-11-29"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "E:/Course & Studies/Software/work area/Repos/Bangalore Traffic")
+```
+
+```{r Package Loading, message=FALSE, warning=FALSE, include=FALSE}
+# package loading 
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(scales)
+library(lubridate)
+library(plotly)
+library(htmlwidgets)
+library(tseries)
+library(forcats)
+library(forecast)
+library(DT)
+library(readr)
+```
+
+# Abstract
+
+Bangalore, known for its rapid urbanization and expanding population, faces significant challenges with traffic congestion. This project aims to analyze traffic patterns in Bangalore with a focus on how weekdays and climatic changes influence average traffic speed and congestion levels. By leveraging historical traffic data and weather conditions, the study examines the interplay between climate variables (such as rainfall, temperature, and humidity) and traffic flow dynamics.
+
+The project seeks to:
+
+1.  Evaluate the impact of climate changes on average traffic speed and congestion during weekdays.
+
+2.  Identify critical weather conditions that exacerbate traffic delays.
+
+3.  Predict future average traffic patterns over a month using ARIMA (Auto-Regressive Integrated Moving Average) modeling.
+
+The analysis integrates statistical and machine learning techniques to understand variability in traffic across different weather scenarios and weekdays. ARIMA modeling will be employed to forecast traffic trends, providing actionable insights for urban planners and policymakers to devise traffic management strategies.
+
+This study not only contributes to understanding the implications of climate change on urban traffic but also supports the development of adaptive measures to mitigate congestion, ensuring smoother traffic flow in Bangalore's growing metropolis.
+
+# About Data
+
+The data is secondary dataset downloaded in kaggle.com website
+
+### Here are brief explanations for each variable:
+
+1.  **Date**: The specific date of the traffic observation or data collection.\
+2.  **Area.Name**: The name of the region or locality within Bangalore where data was recorded.\
+3.  **Road.Intersection.Name**: The specific road or intersection where the traffic data was collected.\
+4.  **Traffic.Volume**: The total number of vehicles passing through a particular road or intersection.\
+5.  **Average.Speed**: The mean speed of vehicles in the observed area during the given time frame.\
+6.  **Travel.Time.Index**: A measure comparing actual travel time to free-flow travel time; indicates traffic efficiency.\
+7.  **Congestion.Level**: A qualitative or quantitative indicator of the severity of traffic congestion.\
+8.  **Road.Capacity.Utilization**: The extent to which the road’s capacity is being used, expressed as a percentage.\
+9.  **Incident.Reports**: The count or details of traffic-related incidents (e.g., accidents, breakdowns) during the observation period.\
+10. **Environmental.Impact**: The effect of traffic activity on the environment, such as emissions or noise levels.\
+11. **Public.Transport.Usage**: The number of commuters using public transportation within the area.\
+12. **Traffic.Signal.Compliance**: The percentage or count of vehicles adhering to traffic signal rules.\
+13. **Parking.Usage**: The utilization of parking spaces in the area, indicating demand for parking facilities.\
+14. **Pedestrian.and.Cyclist.Count**: The count of pedestrians and cyclists in the observed area.\
+15. **Weather.Conditions**: The prevailing climatic factors (e.g., temperature, rainfall, humidity) during the observation period.\
+16. **Roadwork.and.Construction.Activity**: Information about ongoing roadwork or construction impacting traffic flow.
+
+Converting the respectives data into Date types , catagorical Types and Numerical types
+
+**Example dataset:**
+
+```{r Data handling, echo=FALSE, message=FALSE, warning=FALSE}
+datam=read.csv("Banglore_traffic_Dataset.csv")
+data=datam
+data$Date=as.Date(datam$Date,formate="%Y-%m-%d")
+data$Average.Speed=data$Average.Speed %>% round(2)
+data$Travel.Time.Index=data$Travel.Time.Index %>% round(2)
+data$Congestion.Level=data$Congestion.Level %>% round(2)
+data$Road.Capacity.Utilization=data$Road.Capacity.Utilization %>% round(2)
+data$Environmental.Impact=data$Environmental.Impact %>% round(2)
+data$Public.Transport.Usage=data$Public.Transport.Usage %>% round(2)
+data$Traffic.Signal.Compliance=data$Traffic.Signal.Compliance %>% round(2)
+data$Parking.Usage=data$Parking.Usage %>% round(2)
+data$Area.Name=data$Area.Name %>% as.factor()
+data$Road.Intersection.Name=data$Road.Intersection.Name %>% as.factor()
+data$Weather.Conditions=data$Weather.Conditions %>% as.factor()
+data$Roadwork.and.Construction.Activity=data$Roadwork.and.Construction.Activity %>% as.factor()
+data$Days=weekdays(data$Date) %>%  as.factor()
+data$month=month(data$Date)|>as.factor()
+levels(data$month)=month.abb
+data$year=year(data$Date)
+data %>% datatable(filter="top")
+```
+
+# Comparing Traffic Volume With other factors
+
+In Bangalore ,Traffic Volume can change due to several factors like weekdays,month,and even based on weather also.
+
+Comparing The Traffic Volume and its Congustion Level with Several Factors
+
+## comparing Weekdays and Traffic Volume
+
+Grouping the data in week bases and creating the barchart to visually see the Result
+
+```{r graph1, echo=FALSE, message=FALSE, warning=FALSE}
+graph1=data %>% group_by(Days) %>% summarise(Average_Traffic=mean(Traffic.Volume)) %>%
+  ggplot(aes(x=factor(Days,levels = c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday")),y=Average_Traffic,fill=Days))+
+  geom_bar(stat="identity")+geom_text(aes(label=round(Average_Traffic,0)),vjust=2)+labs(
+    title="WEEKDAYS Vs TRAFFIC",
+    y="TRAFFIC VOLUME(AVERAGE)",
+    x="WEEKDAYS",
+    caption = "It is the bar-diagram of Average traffic volume in Bangalure based on weekdays ")+
+  theme(plot.title = element_text(face = "bold",hjust=0.5),
+        legend.position = "None",
+        plot.caption = element_text(face="bold"))
+ggplotly(graph1)
+```
+
+### Result
+
+From the above chart We can see that Average Traffic Volume is High on wednesday
+
+## comapring Month and Traffic Volume
+
+Grouping the data in Month bases and creating the barchart to visually see the Result
+
+```{r Month wise , echo=FALSE, message=FALSE, warning=FALSE}
+graph2=data %>% group_by(month) %>% summarise(Average_Traffic=mean(Traffic.Volume)) %>%
+  ggplot(aes(x=factor(month,levels=month.abb),y=Average_Traffic,fill=month))+
+  geom_bar(stat="identity")+geom_text(aes(label=round(Average_Traffic,0)),vjust=1.5)+labs(
+    title="MONTH Vs TRAFFIC",
+    y="TRAFFIC VOLUME(AVERAGE)",
+    x="Month",
+    caption = "It is the bar-diagram of Average traffic volume in Bangalure based on Months ")+
+  theme(plot.title = element_text(face = "bold",hjust=0.5),
+        legend.position = "None",
+        plot.caption = element_text(face="bold"))
+ggplotly(graph2)
+```
+
+### Result
+
+From the above chart We can see that Average Traffic Volume is High on June
+
+## Comparing Average Speed and Congestion Level
+
+```{r graph 3, echo=FALSE, message=FALSE, warning=FALSE}
+graph3=data %>% ggplot(aes(x=Average.Speed,y=Congestion.Level))+geom_point(shape=1)  
+ggplotly(graph3)
+```
+
+```{r Correlation, echo=FALSE, message=FALSE, warning=FALSE}
+data %>% subset(select = c(Average.Speed,Congestion.Level)) %>% cor %>% round(3)
+```
+
+### Result
+
+The correlation between Average Speed and Congestion level is -0.36 It's clearly indicates that when the Average speed is increases the congestion level will decreases
+
+## Comparing Average Speed and Congestion
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+k=data %>% group_by(year,month) %>% summarise(Speed=mean(Average.Speed),Congestion=mean(Congestion.Level)) 
+graph4=k %>% ggplot(aes(x=Speed,y=Congestion))+geom_smooth(se=F)+geom_point()+labs(title = "Speed Vs Congestion")+theme(plot.title = element_text(hjust = 0.5,face="bold"))
+
+
+graph4 %>% ggplotly()
+```
+
+```{r correlation, echo=FALSE, message=FALSE, warning=FALSE}
+k %>% subset(select = c(Speed,Congestion)) %>% cor()
+```
+
+### Result
+
+The correlation between Average Speed and Congestion is -0.34 It's clearly indicates that when the Average speed is increases the congestion will decreases
+
+## Comparing Traffic Volume , Speed and Weather
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+graph5=data %>% ggplot(aes(x=Average.Speed,y=Traffic.Volume,colour =Weather.Conditions))+
+  facet_wrap(~Weather.Conditions)+geom_point()+
+  labs(title ="Average Speed Vs Traffic Volume",
+       subtitle = "Based on Weather Condtion ",
+       x="Average Speed",
+       y=" Traffic Volume")+
+  theme(legend.position = "none",
+        plot.title = element_text(face="bold",hjust=0.5),
+        plot.subtitle = element_text(hjust=0.5)
+        )
+ggplotly(graph5)
+```
+
+### Result
+
+The Above Graph clearly indiacates that when the speed decreases the traffic volume will increases. And Weather is also one term which affects the Average speed causes to increase the Traffic Volume
+
+# Predicting The Traffic Volume for Future In Bangalore
+
+Converting the data into time series data and predicting the Future Traffic Values By using The ARIMA function
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+data1=data %>%
+  subset(select=c(year,month,Traffic.Volume,Environmental.Impact,Public.Transport.Usage)) %>% 
+  group_by(year,month) %>%summarise(Traffic_volume=sum(Traffic.Volume),
+                                    Environmental_Impact=sum(Environmental.Impact),
+                                    Public_Transport_usage=sum(Public.Transport.Usage)) 
+data1$sno=1:32
+data1 %>% datatable(filter="top")
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+ts_data=data1[1:31,] %>% subset(select=c(year,month,Traffic_volume))
+ts_data$sn01=1:31
+datatime=ts(ts_data$Traffic_volume,start=min(ts_data$sn01),end=max(ts_data$sn01),frequency = 12)
+
+```
+
+#### Ploting the Traffic Volume over the month
+
+Using the Augmented Dickey-Fuller Test function to check the stationary of the data
+
+```{r Time series , echo=FALSE, message=FALSE, warning=FALSE}
+
+# adf test to test stationary p is less than 0.05 then it is stationary 
+adf.test(datatime)
+```
+
+### Result
+
+The Calculated P-value is lesser that 0.05 so , the data is in Stationary
+
+## Fitting ARIMA model
+
+```{r ARIMA Model, echo=FALSE, message=FALSE, warning=FALSE}
+model=auto.arima(datatime,ic="bic",trace = T)
+model
+acf(ts(model$residuals))
+
+pacf(ts(model$residuals))
+
+```
+
+### Result
+
+The best ARIMA model for the data is **ARIMA(1,0,0)** with **BIC:10305.86**
+
+## Predicting the total Traffic Volume for following 15 months
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+myf=forecast(model,level=95,h=15) 
+myfdata=myf %>%  as.data.frame()
+myfdata %>% round(3) %>% datatable(filter = "top")
+plot(myf,xlab="Month (starting form 2022 jan)",ylab="Traffic volume",main="Predicted Traffic Volume(upto 2025 june)")
+
+```
+
+### Result
+
+In future the Traffic volume will increase Rapidlly if we didn\`t take any action in it.
+
+# Conclusion
+
+The analysis reveals that the average traffic volume in Bangalore is highest on Wednesdays and peaks during the month of June, indicating specific patterns in traffic behavior. It is observed that an increase in average speed leads to a decrease in both congestion levels and overall congestion, emphasizing the importance of smooth traffic flow. Weather also plays a significant role, as adverse conditions can reduce average speed, leading to an increase in traffic volume. If no measures are taken, traffic volume is projected to rise rapidly in the future, highlighting the urgent need for effective traffic management strategies to mitigate these challenges.
