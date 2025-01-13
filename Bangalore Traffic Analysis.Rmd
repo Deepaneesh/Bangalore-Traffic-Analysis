@@ -3,18 +3,27 @@ title: "Bangalore Traffic Analysis"
 author: "Deepaneesh R V"
 date: "2024-11-29"
 output:
-  html_document:
-    toc: true
-    toc_depth: 2
-    toc_float: true
+ html_document:
+   toc: true
+   toc_float: true
+   code_folding: hide
+   theme: spacelab
+   highlight: tango
+   fig_width: 6
+   fig_height: 4
+   fig_caption: true
+   keep_md: true
+   df_print: paged
+   code_download: true
+   
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = "E:/Course & Studies/Software/work area/Repos/Bangalore Traffic")
+knitr::opts_knit$set(root.dir = "E:/Course & Studies/Software/work area/Repos/Bangalore-Traffic-Analysis")
 ```
 
-```{r Package Loading, message=FALSE, warning=FALSE, include=FALSE}
+```{r Package Loading, echo=TRUE, message=FALSE, warning=FALSE}
 # package loading 
 library(dplyr)
 library(tidyverse)
@@ -73,7 +82,7 @@ Converting the respectives data into Date types , catagorical Types and Numerica
 
 **Example dataset:**
 
-```{r Data handling, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Data handling, echo=TRUE, message=FALSE, warning=FALSE}
 datam=read.csv("Banglore_traffic_Dataset.csv")
 data=datam
 data$Date=as.Date(datam$Date,formate="%Y-%m-%d")
@@ -106,7 +115,7 @@ Comparing The Traffic Volume and its Congustion Level with Several Factors
 
 Grouping the data in week bases and creating the barchart to visually see the Result
 
-```{r graph1, echo=FALSE, message=FALSE, warning=FALSE}
+```{r graph1, echo=TRUE, message=FALSE, warning=FALSE}
 graph1=data %>% group_by(Days) %>% summarise(Average_Traffic=mean(Traffic.Volume)) %>%
   ggplot(aes(x=factor(Days,levels = c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday")),y=Average_Traffic,fill=Days))+
   geom_bar(stat="identity")+geom_text(aes(label=round(Average_Traffic,0)),vjust=2)+labs(
@@ -128,7 +137,7 @@ From the above chart We can see that Average Traffic Volume is High on wednesday
 
 Grouping the data in Month bases and creating the barchart to visually see the Result
 
-```{r Month wise , echo=FALSE, message=FALSE, warning=FALSE}
+```{r Month wise, echo=TRUE, message=FALSE, warning=FALSE}
 graph2=data %>% group_by(month) %>% summarise(Average_Traffic=mean(Traffic.Volume)) %>%
   ggplot(aes(x=factor(month,levels=month.abb),y=Average_Traffic,fill=month))+
   geom_bar(stat="identity")+geom_text(aes(label=round(Average_Traffic,0)),vjust=1.5)+labs(
@@ -148,12 +157,12 @@ From the above chart We can see that Average Traffic Volume is High on June
 
 ## Comparing Average Speed and Congestion Level
 
-```{r graph 3, echo=FALSE, message=FALSE, warning=FALSE}
+```{r graph 3, echo=TRUE, message=FALSE, warning=FALSE}
 graph3=data %>% ggplot(aes(x=Average.Speed,y=Congestion.Level))+geom_point(shape=1)  
 ggplotly(graph3)
 ```
 
-```{r Correlation, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Correlation, echo=TRUE, message=FALSE, warning=FALSE}
 data %>% subset(select = c(Average.Speed,Congestion.Level)) %>% cor %>% round(3)
 ```
 
@@ -163,7 +172,7 @@ The correlation between Average Speed and Congestion level is -0.36 It's clearly
 
 ## Comparing Average Speed and Congestion
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 k=data %>% group_by(year,month) %>% summarise(Speed=mean(Average.Speed),Congestion=mean(Congestion.Level)) 
 graph4=k %>% ggplot(aes(x=Speed,y=Congestion))+geom_smooth(se=F)+geom_point()+labs(title = "Speed Vs Congestion")+theme(plot.title = element_text(hjust = 0.5,face="bold"))
 
@@ -171,7 +180,7 @@ graph4=k %>% ggplot(aes(x=Speed,y=Congestion))+geom_smooth(se=F)+geom_point()+la
 graph4 %>% ggplotly()
 ```
 
-```{r correlation, echo=FALSE, message=FALSE, warning=FALSE}
+```{r correlation, echo=TRUE, message=FALSE, warning=FALSE}
 k %>% subset(select = c(Speed,Congestion)) %>% cor()
 ```
 
@@ -181,7 +190,7 @@ The correlation between Average Speed and Congestion is -0.34 It's clearly indic
 
 ## Comparing Traffic Volume , Speed and Weather
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 graph5=data %>% ggplot(aes(x=Average.Speed,y=Traffic.Volume,colour =Weather.Conditions))+
   facet_wrap(~Weather.Conditions)+geom_point()+
   labs(title ="Average Speed Vs Traffic Volume",
@@ -203,7 +212,7 @@ The Above Graph clearly indiacates that when the speed decreases the traffic vol
 
 Converting the data into time series data and predicting the Future Traffic Values By using The ARIMA function
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 data1=data %>%
   subset(select=c(year,month,Traffic.Volume,Environmental.Impact,Public.Transport.Usage)) %>% 
   group_by(year,month) %>%summarise(Traffic_volume=sum(Traffic.Volume),
@@ -213,30 +222,30 @@ data1$sno=1:32
 data1 %>% datatable(filter="top")
 ```
 
-```{r message=FALSE, warning=FALSE, include=FALSE}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 ts_data=data1[1:31,] %>% subset(select=c(year,month,Traffic_volume))
 ts_data$sn01=1:31
 datatime=ts(ts_data$Traffic_volume,start=min(ts_data$sn01),end=max(ts_data$sn01),frequency = 12)
 
 ```
 
-#### Ploting the Traffic Volume over the month
+### Ploting the Traffic Volume over the month
 
 Using the Augmented Dickey-Fuller Test function to check the stationary of the data
 
-```{r Time series , echo=FALSE, message=FALSE, warning=FALSE}
+```{r Time series, echo=TRUE, message=FALSE, warning=FALSE}
 
 # adf test to test stationary p is less than 0.05 then it is stationary 
 adf.test(datatime)
 ```
 
-### Result
+#### Result
 
 The Calculated P-value is lesser that 0.05 so , the data is in Stationary
 
 ## Fitting ARIMA model
 
-```{r ARIMA Model, echo=FALSE, message=FALSE, warning=FALSE}
+```{r ARIMA Model, echo=TRUE, message=FALSE, warning=FALSE}
 model=auto.arima(datatime,ic="bic",trace = T)
 model
 acf(ts(model$residuals))
@@ -251,7 +260,7 @@ The best ARIMA model for the data is **ARIMA(1,0,0)** with **BIC:10305.86**
 
 ## Predicting the total Traffic Volume for following 15 months
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 myf=forecast(model,level=95,h=15) 
 myfdata=myf %>%  as.data.frame()
 myfdata %>% round(3) %>% datatable(filter = "top")
